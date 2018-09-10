@@ -1,26 +1,27 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"strconv"
+
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
-	"io/ioutil"
-	"encoding/json"
-	"strconv"
 )
 
 type Res struct {
-    Code   int
-    Data   []Inventory
+	Code int
+	Data []Inventory
 }
 type Res2 struct {
 	Code int
 }
 
 type Inventory struct {
-    No     string `json:"no"`
-    Vin    string `json:"vin"`
+	No     string `json:"no"`
+	Vin    string `json:"vin"`
 	Model  string `json:"model"`
 	Make   string `json:"make"`
 	Year   string `json:"year"`
@@ -48,7 +49,7 @@ func main() {
 		}
 
 		var invs []Inventory
-		json.Unmarshal( inventories, &invs )
+		json.Unmarshal(inventories, &invs)
 
 		// jsonBytes, jerr := json.Marshal( invs )
 		// if jerr != nil {
@@ -60,7 +61,7 @@ func main() {
 		if rerr != nil {
 			panic(rerr)
 		}
-		w.Write( stringRes )
+		w.Write(stringRes)
 	})
 
 	r.HandleFunc("/inventory/add", func(w http.ResponseWriter, r *http.Request) {
@@ -73,13 +74,13 @@ func main() {
 		fmt.Printf("inventories: %v\n", string(inventories))
 
 		var invs []Inventory
-		json.Unmarshal( inventories, &invs )
+		json.Unmarshal(inventories, &invs)
 
 		fmt.Printf("len: %v", len(invs))
 
 		inv := Inventory{
-			strconv.Itoa(len(invs)+1),
-		 	r.FormValue("vin"),
+			strconv.Itoa(len(invs) + 1),
+			r.FormValue("vin"),
 			r.FormValue("model"),
 			r.FormValue("make"),
 			r.FormValue("year"),
@@ -92,11 +93,11 @@ func main() {
 
 		fmt.Printf("invs: %v\n", invs)
 
-		invs = append( invs, inv )
+		invs = append(invs, inv)
 
 		fmt.Printf("appended invs: %v\n", invs)
 
-		stringBytes, jerr := json.Marshal( invs )
+		stringBytes, jerr := json.Marshal(invs)
 		if jerr != nil {
 			panic(jerr)
 		}
@@ -112,13 +113,23 @@ func main() {
 		if rerr != nil {
 			panic(rerr)
 		}
-		w.Write(stringRes);
+		w.Write(stringRes)
 	}).Methods("POST")
 
-	r.HandleFunc("/inventory/delete/{no}", func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		no := vars["no"]
-		
+	r.HandleFunc("/inventory/delete", func(w http.ResponseWriter, r *http.Request) {
+
+		vins := []string{r.FormValue("vins")}
+		fmt.Println(vins)
+
+		// var jsonVins []Vins
+		// json.Unmarshal(vins, &jsonVins)
+
+		// fmt.Println(r.PostForm)
+
+		// vins := r.PostForm["vins"]
+
+		fmt.Println(len(vins))
+
 		//파일 읽기
 		inventories, err := ioutil.ReadFile("./inventory.json")
 		if err != nil {
@@ -128,18 +139,30 @@ func main() {
 		fmt.Printf("inventories: %v\n", string(inventories))
 
 		var invs []Inventory
-		json.Unmarshal( inventories, &invs )
+		json.Unmarshal(inventories, &invs)
 
 		fmt.Printf("len before: %v", len(invs))
 
-		i, err := strconv.Atoi(no)
-		invs = invs[:i]
+		// for vins에서 뽑아서 비교해서 같으면 제거
+		n := 0
+		for n < len(vins) {
+			for inv := range invs {
+				fmt.Println("invs[inv].Vin: %v", invs[inv].Vin)
+				fmt.Println("string(vins[n]): %v", string(vins[n]))
+				if invs[inv].Vin == string(vins[n]) {
+					fmt.Printf("find : %v", string(vins[n]))
+					invs = invs[:inv]
+					break
+				}
+			}
+			n++
+		}
 
 		fmt.Printf("len after: %v", len(invs))
 
 		fmt.Printf("deleted invs: %v\n", invs)
 
-		stringBytes, jerr := json.Marshal( invs )
+		stringBytes, jerr := json.Marshal(invs)
 		if jerr != nil {
 			panic(jerr)
 		}
@@ -155,16 +178,16 @@ func main() {
 		if rerr != nil {
 			panic(rerr)
 		}
-		w.Write(stringRes);
-	}).Methods("GET")
+		w.Write(stringRes)
+	}).Methods("POST")
 
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost:8080"},
+		AllowedOrigins:   []string{"http://localhost:8080"},
 		AllowCredentials: true,
 	})
 
 	handler := c.Handler(r)
 
-	http.ListenAndServe(":8081", handler )
+	http.ListenAndServe(":8081", handler)
 	// http.ListenAndServe(":8081", r)
 }
