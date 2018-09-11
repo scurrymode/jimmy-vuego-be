@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strconv"
+
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 )
@@ -23,7 +23,6 @@ type Vins struct {
 }
 
 type Inventory struct {
-	No     string `json:"no"`
 	Vin    string `json:"vin"`
 	Model  string `json:"model"`
 	Make   string `json:"make"`
@@ -35,10 +34,11 @@ type Inventory struct {
 }
 
 func main() {
+	filePath := "./inventory.json"
 	r := mux.NewRouter()
 
 	r.HandleFunc("/inventory", func(w http.ResponseWriter, r *http.Request) {
-		inventories, err := ioutil.ReadFile("./inventory.json")
+		inventories, err := ioutil.ReadFile(filePath)
 		if err != nil {
 			panic(err)
 		}
@@ -55,7 +55,7 @@ func main() {
 	}).Methods("GET")
 
 	r.HandleFunc("/inventory/add", func(w http.ResponseWriter, r *http.Request) {
-		inventories, err := ioutil.ReadFile("./inventory.json")
+		inventories, err := ioutil.ReadFile(filePath)
 		if err != nil {
 			panic(err)
 		}
@@ -68,7 +68,6 @@ func main() {
 		fmt.Printf("len: %v", len(invs))
 
 		inv := Inventory{
-			strconv.Itoa(len(invs) + 1),
 			r.FormValue("vin"),
 			r.FormValue("model"),
 			r.FormValue("make"),
@@ -92,7 +91,7 @@ func main() {
 		}
 
 		//파일 쓰기
-		err = ioutil.WriteFile("./inventory.json", stringBytes, 0)
+		err = ioutil.WriteFile(filePath, stringBytes, 0)
 		if err != nil {
 			panic(err)
 		}
@@ -107,7 +106,7 @@ func main() {
 
 	r.HandleFunc("/inventory/delete", func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
-		
+
 		var vins Vins
 		err := decoder.Decode(&vins)
 		if err != nil {
@@ -118,7 +117,7 @@ func main() {
 		// fmt.Println(len(vins.Vins))
 
 		//파일 읽기
-		inventories, err := ioutil.ReadFile("./inventory.json")
+		inventories, err := ioutil.ReadFile(filePath)
 		if err != nil {
 			panic(err)
 		}
@@ -136,7 +135,7 @@ func main() {
 				if invs[inv].Vin == string(vins.Vins[n]) {
 					fmt.Printf("find : %v", string(vins.Vins[n]))
 					copy(invs[inv:], invs[inv+1:])
-					invs = invs[:len(invs)-1] 
+					invs = invs[:len(invs)-1]
 					break
 				}
 			}
@@ -148,7 +147,7 @@ func main() {
 			panic(jerr)
 		}
 
-		err = ioutil.WriteFile("./inventory.json", stringBytes, 0)
+		err = ioutil.WriteFile(filePath, stringBytes, 0)
 		if err != nil {
 			panic(err)
 		}
